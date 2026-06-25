@@ -75,3 +75,13 @@ store_object :: proc(hash: Hash, data: []u8) -> bool {
   if (os_err != os.ERROR_NONE) do return false
   return true
 }
+
+read_object :: proc(hash: Hash) -> ([]u8, bool) {
+  hash_string := hash_to_hex(hash)
+  defer delete(hash_string)
+  file_path := object_path(hash_string)
+  if !os.exists(file_path) do return {}, false
+  data, os_err := os.read_entire_file_from_path(file_path, context.allocator)
+  if (os_err != os.ERROR_NONE) do return {}, false
+  return data, true
+}
