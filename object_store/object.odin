@@ -33,11 +33,7 @@ write_object :: proc(kind: Object_Type, payload: []u8) -> (Hash, bool) {
   return hash, ok
 }
 
-write_blob :: proc(data: []u8) -> (Hash, bool) {
-  return write_object(.Blob, data)
-}
-
-object_type_string :: proc(kind: Object_Type) -> string {
+object_type_to_string :: proc(kind: Object_Type) -> string {
   switch kind {
   case .Blob:   return "blob"
   case .Tree:   return "tree"
@@ -46,7 +42,7 @@ object_type_string :: proc(kind: Object_Type) -> string {
   unreachable()
 }
 
-object_type_from_string :: proc(kind: string) -> Object_Type {
+string_to_object_type :: proc(kind: string) -> Object_Type {
   switch kind {
   case "blob": return .Blob
   case "tree": return .Tree
@@ -56,7 +52,7 @@ object_type_from_string :: proc(kind: string) -> Object_Type {
 }
 
 serialise_object :: proc(kind: Object_Type, payload: []u8) -> []u8 {
-  header := fmt.tprintf("%s %d\x00", object_type_string(kind), len(payload))
+  header := fmt.tprintf("%s %d\x00", object_type_to_string(kind), len(payload))
   header_as_bytes := transmute([]u8)header
   object := make([dynamic]u8)
   append(&object, ..header_as_bytes)
@@ -77,6 +73,21 @@ hash_to_hex :: proc(hash: Hash) -> string {
   hash_copy := hash
   encoded := hex.encode(hash_copy[:])
   return string(encoded[:])
+}
+
+hash_from_hex :: proc(s: string) -> (Hash, bool) {
+  if len(s) != 40 do return {}, false
+
+  decoded, ok := hex.decode(transmute([]u8)s)
+  if !ok do return {}, false
+  defer delete(decoded)
+
+  if len(decoded) != 20 do return {}, false
+
+  hash: Hash
+  copy(hash[:], decoded)
+
+  return hash, true
 }
 
 object_path :: proc(hash: string) -> string {
@@ -124,7 +135,7 @@ parse_object :: proc(data: []u8) -> (Object, bool) {
   if len(payload) != data_sz do return {}, false
 
   return {
-    kind = object_type_from_string(kind),
+    kind = string_to_object_type(kind),
     payload = payload
   }, true
 }

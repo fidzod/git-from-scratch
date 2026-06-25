@@ -4,20 +4,34 @@ import "core:fmt"
 import "object_store"
 
 main :: proc() {
-  data_str := "Hello World"
-  hash, write_ok := object_store.write_blob(transmute([]u8)data_str)
+  readme_hash, _ := object_store.write_blob(transmute([]u8)string("Hello"))
+  main_hash, _ := object_store.write_blob(transmute([]u8)string("main :: proc() {}"))
 
-  hash_str := object_store.hash_to_hex(hash)
-  defer delete(hash_str)
-  if write_ok do fmt.println(hash_str)
+  entries := []object_store.Tree_Entry{
+    {
+      name = "README.md",
+      hash = readme_hash,
+    },
+    {
+      name = "main.odin",
+      hash = main_hash
+    },
+  }
 
-  read_data, read_ok := object_store.read_object(hash)
-  defer delete(read_data)
+  tree_hash, write_ok := object_store.write_tree(entries)
+  tree_data, read_ok := object_store.read_object(tree_hash)
+  defer delete(tree_data)
+  obj, _ := object_store.parse_object(tree_data)
+  defer object_store.destroy_object(obj)
+  parsed_entries, parse_ok := object_store.parse_tree(obj.payload)
+  defer delete(parsed_entries)
 
-  parsed_object, parse_ok := object_store.parse_object(read_data)
-  defer object_store.destroy_object(parsed_object)
-  fmt.println("kind:", parsed_object.kind)
-  fmt.println("payload:", string(parsed_object.payload))
+  hash0 := object_store.hash_to_hex(parsed_entries[0].hash)
+  defer delete(hash0)
+  hash1 := object_store.hash_to_hex(parsed_entries[1].hash)
+  defer delete(hash1)
+  fmt.println(parsed_entries[0].name, hash0)
+  fmt.println(parsed_entries[1].name, hash1)
 
   return
 }
