@@ -1,6 +1,5 @@
 package main
 
-import "core:strings"
 import "core:fmt"
 import "object_store"
 
@@ -10,12 +9,15 @@ main :: proc() {
 
   hash_str := object_store.hash_to_hex(hash)
   defer delete(hash_str)
-  if write_ok do fmt.println("wrote:", hash_str)
+  if write_ok do fmt.println(hash_str)
 
   read_data, read_ok := object_store.read_object(hash)
   defer delete(read_data)
-  read_data_str := strings.string_from_ptr(&read_data[0], len(read_data))
-  fmt.println("read:", read_data_str)
+
+  parsed_object, parse_ok := object_store.parse_object(read_data)
+  defer object_store.destroy_object(parsed_object)
+  fmt.println("kind:", parsed_object.kind)
+  fmt.println("payload:", string(parsed_object.payload))
 
   return
 }
