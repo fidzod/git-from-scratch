@@ -9,7 +9,9 @@ Tree_Entry :: struct {
 	hash: Hash,
 }
 
-serialise_tree :: proc(entries: []Tree_Entry) -> []u8 {
+Tree :: []Tree_Entry
+
+serialise_tree :: proc(entries: Tree) -> []u8 {
 	tree := make([dynamic]u8)
 	for entry in entries {
 		append(&tree, ..transmute([]u8)entry.name)
@@ -22,7 +24,7 @@ serialise_tree :: proc(entries: []Tree_Entry) -> []u8 {
 	return tree[:]
 }
 
-write_tree :: proc(entries: []Tree_Entry) -> (Hash, bool) {
+write_tree :: proc(entries: Tree) -> (Hash, bool) {
   slice.sort_by(entries[:], proc(a, b: Tree_Entry) -> bool {
     return a.name < b.name
   })
@@ -31,7 +33,7 @@ write_tree :: proc(entries: []Tree_Entry) -> (Hash, bool) {
 	return write_object(.Tree, payload)
 }
 
-parse_tree :: proc(payload: []u8) -> ([]Tree_Entry, bool) {
+parse_tree :: proc(payload: []u8) -> (Tree, bool) {
 	entries := make([dynamic]Tree_Entry)
 	rows := bytes.split(payload, {'\n'})
 	defer delete(rows)
